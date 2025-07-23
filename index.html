@@ -338,7 +338,7 @@
         const listsDiv = document.getElementById("lists");
 
         if (dynamicLists.length === 0) {
-            listsDiv.innerHTML = '<p style="text-align: center; color: #6b7280;">単語リストがありません。<br>GitHubリポジトリのdataフォルダに<br>TSVファイルを追加してください。</p>';
+            listsDiv.innerHTML = '<p style="text-align: center; color: #6b7280;">単語リストがありません<br>dataフォルダにTSVファイルを追加</p>';
         } else {
             const listsHtml = dynamicLists.map(list => {
                 const listId = list.id;
