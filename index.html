@@ -334,7 +334,7 @@
         const listsDiv = document.getElementById("lists");
 
         if (dynamicLists.length === 0) {
-            listsDiv.innerHTML = '<p style="text-align: center; color: #6b7280;"></p>';
+            listsDiv.innerHTML = '<p style="text-align: center; color: #6b7280;">読み込む単語リストがありません。<br>TSVファイルを追加してください。</p>';
         } else {
             const listsHtml = dynamicLists.map(list => {
                 const listId = list.id;
@@ -623,7 +623,8 @@
       // --- 初期リスト読み込み ---
       async function loadBuiltInLists() {
         try {
-          const manifestResponse = await fetch('/data/manifest.json');
+          // パスを相対パスに変更 (先頭の / を削除)
+          const manifestResponse = await fetch('data/manifest.json');
           if (!manifestResponse.ok) {
             console.log('Built-in list manifest not found. Skipping.');
             return;
