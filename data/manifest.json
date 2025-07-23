@@ -4,9 +4,17 @@
       "name": "動詞1",
       "path": "data/words_verb1.tsv"
     },
-    {
+     {
       "name": "動詞2",
       "path": "data/words_verb2.tsv"
+    },
+    {
+      "name": "動詞3",
+      "path": "data/words_verb3.tsv"
+    },
+    {
+      "name": "動詞200",
+      "path": "data/動詞200選.tsv"
     }
   ]
 }
