@@ -11,10 +11,6 @@
     {
       "name": "動詞3",
       "path": "data/words_verb3.tsv"
-    },
-    {
-      "name": "動詞200",
-      "path": "data/動詞200選.tsv"
-    }
+   }
   ]
 }
