@@ -1,0 +1,633 @@
+
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>英単語フラッシュカード</title>
+    <style>
+      body {
+          background: #f3f4f6;
+          font-family: 'Segoe UI', 'Meiryo', sans-serif;
+          margin: 0;
+          padding: 0;
+      }
+
+      .container {
+          width: 100%;
+          max-width: 420px;
+          margin: 2rem auto;
+          background: #fff;
+          border-radius: 16px;
+          box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+          padding: 2rem 1rem 2rem 1rem;
+      }
+
+      .title {
+          text-align: center;
+          font-size: 2rem;
+          font-weight: bold;
+          color: #222;
+          margin-bottom: 1.5rem;
+      }
+
+      .list-card {
+          background: #f9fafb;
+          border-radius: 12px;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+          padding: 1.2rem 1rem;
+          margin-bottom: 1.2rem;
+      }
+
+      .list-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 0.7rem;
+          border-bottom: 1px solid #e5e7eb;
+          padding-bottom: 0.3rem;
+          gap: 0.5rem;
+      }
+
+      .list-title {
+          font-size: 1.2rem;
+          font-weight: 600;
+          color: #333;
+          margin: 0;
+          border: none;
+          padding: 0;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+      }
+      
+      .progress-info {
+          font-size: 0.8rem;
+          color: #6b7280;
+          margin-bottom: 0.7rem;
+          text-align: center;
+          background: #e5e7eb;
+          padding: 0.3rem 0;
+          border-radius: 6px;
+      }
+
+      .delete-btn {
+          background: #6b7280;
+          color: white;
+          border: none;
+          border-radius: 6px;
+          padding: 0.3rem 0.8rem;
+          font-size: 0.9rem;
+          font-weight: 500;
+          cursor: pointer;
+          transition: background 0.2s;
+          flex-shrink: 0;
+      }
+      .delete-btn:hover {
+          background: #4b5563;
+      }
+
+      .list-btns {
+          display: flex;
+          justify-content: space-around;
+          gap: 0.5rem;
+      }
+
+      .mode-btn {
+          width: 48%;
+          padding: 0.7rem 0;
+          border: none;
+          border-radius: 8px;
+          font-size: 1rem;
+          font-weight: bold;
+          color: #fff;
+          cursor: pointer;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.07);
+          transition: background 0.2s;
+      }
+      .mode-btn.learn { background: #3b82f6; }
+      .mode-btn.learn:hover { background: #2563eb; }
+      .mode-btn.test { background: #f59e42; }
+      .mode-btn.test:hover { background: #ea580c; }
+
+      .add-btn {
+          width: 100%;
+          max-width: 260px;
+          padding: 0.8rem 0;
+          background: #22c55e;
+          color: #fff;
+          font-weight: bold;
+          border: none;
+          border-radius: 10px;
+          font-size: 1.1rem;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+          cursor: pointer;
+          transition: background 0.2s, transform 0.2s;
+      }
+      .add-btn:hover {
+          background: #16a34a;
+          transform: scale(1.04);
+      }
+
+      .card-container {
+          width: 100%;
+          max-width: 400px;
+          height: 250px;
+          perspective: 1000px;
+          cursor: pointer;
+          margin: 0 auto 3rem auto;
+      }
+
+      .card {
+          width: 100%;
+          height: 100%;
+          position: relative;
+          transform-style: preserve-3d;
+          transition: transform 0.6s;
+      }
+
+      .card.is-flipped {
+          transform: rotateY(180deg);
+      }
+
+      .card-face {
+          position: absolute;
+          width: 100%;
+          height: 100%;
+          backface-visibility: hidden;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          border-radius: 15px;
+          box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+          padding: 1rem;
+          text-align: center;
+          word-break: break-word;
+          box-sizing: border-box; /* This ensures padding is inside the element's width/height */
+      }
+
+      .card-front {
+          background: #fefce8; /* 薄い黄色 */
+          color: #111827;      /* 黒字 */
+          font-size: 2.5rem;
+          font-weight: bold;
+      }
+
+      .card-back {
+          background: #f0f9ff; /* 薄い水色 */
+          color: #111827;      /* 黒字 */
+          font-size: 2.0rem;
+          font-weight: 600;
+          transform: rotateY(180deg);
+      }
+
+      .done-card .card-front {
+          font-size: 2rem;
+          color: #15803d; /* 完了テキストを緑色に */
+      }
+
+      .counters {
+          display: flex;
+          justify-content: center;
+          margin-bottom: 1rem;
+          font-size: 1rem;
+          color: #444;
+      }
+
+      .counters span {
+          margin: 0 1em; /* Add horizontal spacing between counters */
+      }
+
+      .btn-row {
+          display: flex;
+          justify-content: space-around;
+          gap: 1rem;
+          margin-bottom: 1rem;
+      }
+
+      .btn-row button {
+          flex: 1;
+          padding: 0.8rem 1rem;
+          border: none;
+          border-radius: 8px;
+          font-size: 1.1rem;
+          font-weight: bold;
+          color: #fff;
+          cursor: pointer;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.07);
+          transition: background 0.2s;
+          white-space: nowrap; 
+      }
+
+      .again-btn { background: #f59e42; }
+      .again-btn:hover { background: #ea580c; }
+      .perfect-btn { background: #22c55e; }
+      .perfect-btn:hover { background: #16a34a; }
+      .forgot-btn { background: #ef4444; }
+      .forgot-btn:hover { background: #b91c1c; }
+      .maybe-btn { background: #f59e42; }
+      .maybe-btn:hover { background: #ea580c; }
+      
+      .sub-btn-row {
+          display: flex;
+          justify-content: center;
+          gap: 1rem;
+          margin-bottom: 1rem;
+      }
+
+      .sub-btn {
+          padding: 0.5rem 1.2rem;
+          background: #e5e7eb;
+          color: #333;
+          border: none;
+          border-radius: 7px;
+          font-size: 1rem;
+          font-weight: 500;
+          cursor: pointer;
+          transition: background 0.2s;
+      }
+      .sub-btn:hover {
+          background: #d1d5db;
+      }
+
+      .back-link {
+          background: none;
+          border: none;
+          color: #3b82f6;
+          font-size: 1rem;
+          cursor: pointer;
+          text-decoration: underline;
+          margin-top: 1.5rem;
+      }
+      .back-link:hover {
+          color: #1d4ed8;
+      }
+
+      .flashcard-page {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+      }
+      .mt-8 {
+          margin-top: 2rem;
+      }
+      .text-center {
+          text-align: center;
+      }
+    </style>
+  <link rel="stylesheet" href="/index.css">
+</head>
+  <body>
+    <div id="app"></div>
+    <script>
+      let dynamicLists = [];
+      let currentList = null;
+      let currentMode = "learn";
+      let progressData = {}; 
+      const app = document.getElementById("app");
+
+      // --- 状態保存・復元 ---
+      const LISTS_KEY = 'flashcard_lists';
+      const PROGRESS_KEY = 'flashcard_progress';
+
+      function saveState() {
+          try {
+              localStorage.setItem(LISTS_KEY, JSON.stringify(dynamicLists));
+              localStorage.setItem(PROGRESS_KEY, JSON.stringify(progressData));
+          } catch (e) {
+              console.error("Failed to save state:", e);
+              alert("データの保存に失敗しました。");
+          }
+      }
+
+      function loadState() {
+          try {
+              const savedLists = localStorage.getItem(LISTS_KEY);
+              const savedProgress = localStorage.getItem(PROGRESS_KEY);
+              if (savedLists) {
+                  dynamicLists = JSON.parse(savedLists);
+              }
+              if (savedProgress) {
+                  progressData = JSON.parse(savedProgress);
+              }
+          } catch (e) {
+              console.error("Failed to load state:", e);
+              // 壊れたデータは削除
+              localStorage.removeItem(LISTS_KEY);
+              localStorage.removeItem(PROGRESS_KEY);
+          }
+      }
+
+      // --- ページ切り替え ---
+      function showHomePage() {
+        app.innerHTML = `
+          <div class="container">
+            <h1 class="title">英単語フラッシュカード</h1>
+            <div id="lists"></div>
+            <div class="mt-8 text-center">
+              <input type="file" id="fileInput" accept=".tsv" style="display:none;">
+              <button id="addListBtn" class="add-btn">TSVファイルからリストを追加</button>
+            </div>
+          </div>
+        `;
+        
+        const listsDiv = document.getElementById("lists");
+
+        if (dynamicLists.length === 0) {
+            //listsDiv.innerHTML = '<p style="text-align: center; color: #6b7280;">TSVファイルから単語リストを追加してください。</p>';
+        } else {
+            const listsHtml = dynamicLists.map(list => {
+                const listId = list.id;
+                const progress = progressData[listId];
+                let progressHtml = '';
+                let modeIndicator = '';
+
+                if (progress) {
+                    const remaining = progress.remaining.length;
+                    const perfect = progress.perfect.length;
+                    const again = progress.again.length;
+                    progressHtml = `<div class="progress-info">のこり${remaining}枚 / カンペキ${perfect}枚 / もう一回${again}枚</div>`;
+                    
+                    const modeText = progress.mode === 'learn' ? '覚える' : 'テスト';
+                    modeIndicator = ` <span style="font-weight: normal; font-size: 0.9rem; color: #4b5563;">（${modeText}）</span>`;
+                }
+                
+                const displayName = `${list.name}${modeIndicator}`;
+
+                return `
+                <div class="list-card">
+                  <div class="list-header">
+                    <h2 class="list-title" title="${list.name}">${displayName}</h2>
+                    <button class="delete-btn" data-id="${listId}">削除</button>
+                  </div>
+                  ${progressHtml}
+                  <div class="list-btns">
+                    <button class="mode-btn learn" data-id="${listId}" data-mode="learn">覚えるモード</button>
+                    <button class="mode-btn test" data-id="${listId}" data-mode="test">確認テスト</button>
+                  </div>
+                </div>
+              `;
+            }).join("");
+            listsDiv.innerHTML = listsHtml;
+        }
+
+        // モード選択
+        document.querySelectorAll(".mode-btn").forEach((btn) => {
+          btn.onclick = () => {
+            const listId = parseInt(btn.dataset.id, 10);
+            currentList = dynamicLists.find(l => l.id === listId);
+            currentMode = btn.dataset.mode;
+
+            const progress = progressData[listId];
+            if (progress && progress.mode === currentMode) {
+              if (confirm("中断したセッションを再開しますか？\n（「キャンセル」で最初から始めます）")) {
+                showFlashcardPage(progress);
+                return;
+              } else {
+                delete progressData[listId];
+                saveState();
+              }
+            }
+            showFlashcardPage();
+          };
+        });
+        
+        // 削除ボタン
+        document.querySelectorAll(".delete-btn").forEach((btn) => {
+            btn.onclick = (e) => {
+                e.stopPropagation();
+                const listId = parseInt(btn.dataset.id, 10);
+                const listToDelete = dynamicLists.find(list => list.id === listId);
+                if (listToDelete && confirm(`「${listToDelete.name}」を削除しますか？\n保存されている進捗も失われます。`)) {
+                    dynamicLists = dynamicLists.filter(list => list.id !== listId);
+                    delete progressData[listId];
+                    saveState();
+                    showHomePage();
+                }
+            };
+        });
+
+        // TSVファイル追加
+        document.getElementById("addListBtn").onclick = () =>
+          document.getElementById("fileInput").click();
+        document.getElementById("fileInput").onchange = async (e) => {
+          const target = e.target;
+          const file = target.files?.[0];
+          if (!file) return;
+          const text = await file.text();
+          const words = parseTsv(text);
+          if (words.length > 0) {
+            dynamicLists.push({ id: Date.now(), name: file.name, words });
+            saveState();
+            showHomePage();
+          } else {
+            alert("ファイルが空か、形式が正しくありません。");
+          }
+          target.value = "";
+        };
+      }
+
+      // --- TSVパース関数 ---
+      function parseTsv(text) {
+        return text.trim().split(/\r?\n/).map((line) => {
+            const [english, japanese] = line.split("\t");
+            return english && japanese ? { english: english.trim(), japanese: japanese.trim() } : null;
+        }).filter(word => word !== null);
+      }
+
+      // --- フラッシュカードページ ---
+      function showFlashcardPage(resumeState = null) {
+        if (!currentList) {
+          showHomePage();
+          return;
+        }
+
+        let words, idx, checked, unchecked;
+
+        if (resumeState) { // セッションを再開
+            words = resumeState.remaining;
+            idx = 0;
+            checked = resumeState.perfect;
+            unchecked = resumeState.again;
+        } else { // 新規セッション
+            words = currentMode === 'learn' 
+                ? [...currentList.words] 
+                : shuffle([...currentList.words]);
+            idx = 0;
+            checked = [];
+            unchecked = [];
+        }
+
+        let isFlipped = false;
+
+        function suspendSession() {
+          if (idx >= words.length) { 
+            delete progressData[currentList.id];
+          } else {
+            progressData[currentList.id] = {
+              remaining: words.slice(idx),
+              perfect: checked,
+              again: unchecked,
+              mode: currentMode,
+            };
+          }
+          saveState();
+          showHomePage();
+        }
+        
+        function resetCurrentList() {
+            delete progressData[currentList.id];
+            saveState();
+            showFlashcardPage();
+        }
+        
+        function startReview() {
+          if (unchecked.length === 0) {
+            alert("「もう一回！」のカードはありません。素晴らしい！");
+            return;
+          }
+          words = shuffle([...unchecked]);
+          idx = 0;
+          checked = [];
+          unchecked = [];
+          isFlipped = false;
+          render();
+        }
+
+        function render() {
+          const reviewButtonText = currentMode === 'learn' ? '復習' : 'テスト';
+
+          if (idx >= words.length) {
+            delete progressData[currentList.id]; 
+            saveState();
+            app.innerHTML = `
+              <div class="container flashcard-page">
+                <h1 class="title">${currentList?.name}</h1>
+                <div class="card-container">
+                  <div class="card done-card">
+                    <div class="card-face card-front">🎉 完了！</div>
+                  </div>
+                </div>
+                <div class="sub-btn-row">
+                  <button id="resetBtn" class="sub-btn">リセット</button>
+                  <button id="reviewBtn" class="sub-btn">「もう一回！」
+                </div>
+                <div class="mt-8">
+                  <button id="backBtn" class="back-link">« リスト選択にもどる</button>
+                </div>
+              </div>
+            `;
+            document.getElementById("resetBtn").onclick = resetCurrentList;
+            document.getElementById("reviewBtn").onclick = startReview;
+            document.getElementById("backBtn").onclick = showHomePage;
+            return;
+          }
+
+          const word = words[idx];
+          app.innerHTML = `
+            <div class="container flashcard-page">
+              <h1 class="title">${currentList?.name}</h1>
+              <div class="card-container" id="cardContainer">
+                <div class="card${isFlipped ? " is-flipped" : ""}">
+                  <div class="card-face card-front">${word.english}</div>
+                  <div class="card-face card-back">${word.japanese}</div>
+                </div>
+              </div>
+              <div class="counters">
+                <span>のこり: ${words.length - idx}</span>
+                <span>カンペキ: ${checked.length}</span>
+                <span>もう一回: ${unchecked.length}</span>
+              </div>
+              <div class="btn-row">
+                ${
+                  currentMode === 'learn'
+                    ? `
+                  <button id="againBtn" class="again-btn">🤔 もう一回！</button>
+                  <button id="perfectBtn" class="perfect-btn">👍 カンペキ！</button>
+                `
+                    : `
+                  <button id="forgotBtn" class="forgot-btn">😥 ムリ～</button>
+                  <button id="maybeBtn" class="maybe-btn">🤔 たぶん</button>
+                  <button id="testPerfectBtn" class="perfect-btn">👍 完璧！</button>
+                `
+                }
+              </div>
+              <div class="sub-btn-row">
+                <button id="suspendBtn" class="sub-btn">中断</button>
+                <button id="resetBtn" class="sub-btn">リセット</button>
+                <button id="reviewBtn" class="sub-btn">「もう一回！」
+              </div>
+              <div class="mt-8">
+                <button id="backBtn" class="back-link">« リスト選択にもどる (保存されません)</button>
+              </div>
+            </div>
+          `;
+
+          document.getElementById("cardContainer").onclick = () => {
+            isFlipped = !isFlipped;
+            render();
+          };
+
+          if (currentMode === 'learn') {
+            document.getElementById("againBtn").onclick = () => {
+              unchecked.push(word);
+              idx++;
+              isFlipped = false;
+              render();
+            };
+            document.getElementById("perfectBtn").onclick = () => {
+              checked.push(word);
+              idx++;
+              isFlipped = false;
+              render();
+            };
+          } else { // test mode
+            document.getElementById("forgotBtn").onclick = () => {
+              unchecked.push(word);
+              idx++;
+              isFlipped = false;
+              render();
+            };
+            document.getElementById("maybeBtn").onclick = () => {
+              unchecked.push(word);
+              idx++;
+              isFlipped = false;
+              render();
+            };
+            document.getElementById("testPerfectBtn").onclick = () => {
+              checked.push(word);
+              idx++;
+              isFlipped = false;
+              render();
+            };
+          }
+          
+          document.getElementById("suspendBtn").onclick = suspendSession;
+          document.getElementById("resetBtn").onclick = resetCurrentList;
+          document.getElementById("reviewBtn").onclick = startReview;
+          document.getElementById("backBtn").onclick = showHomePage;
+        }
+
+        render();
+      }
+
+      // --- シャッフル関数 ---
+      function shuffle(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [array[i], array[j]] = [array[j], array[i]];
+        }
+        return array;
+      }
+
+      // --- 初期化 ---
+      function initializeApp() {
+          loadState();
+          showHomePage();
+      }
+
+      initializeApp();
+    </script>
+  <script type="module" src="/index.tsx"></script>
+</body>
+</html>
