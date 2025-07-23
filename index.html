@@ -334,7 +334,7 @@
         const listsDiv = document.getElementById("lists");
 
         if (dynamicLists.length === 0) {
-            //listsDiv.innerHTML = '<p style="text-align: center; color: #6b7280;">TSVファイルから単語リストを追加してください。</p>';
+            listsDiv.innerHTML = '<p style="text-align: center; color: #6b7280;"></p>';
         } else {
             const listsHtml = dynamicLists.map(list => {
                 const listId = list.id;
@@ -358,12 +358,12 @@
                 <div class="list-card">
                   <div class="list-header">
                     <h2 class="list-title" title="${list.name}">${displayName}</h2>
-                    <button class="delete-btn" data-id="${listId}">削除</button>
+                    <button class="delete-btn" data-id='${JSON.stringify(listId)}'>削除</button>
                   </div>
                   ${progressHtml}
                   <div class="list-btns">
-                    <button class="mode-btn learn" data-id="${listId}" data-mode="learn">覚えるモード</button>
-                    <button class="mode-btn test" data-id="${listId}" data-mode="test">確認テスト</button>
+                    <button class="mode-btn learn" data-id='${JSON.stringify(listId)}' data-mode="learn">覚えるモード</button>
+                    <button class="mode-btn test" data-id='${JSON.stringify(listId)}' data-mode="test">確認テスト</button>
                   </div>
                 </div>
               `;
@@ -374,7 +374,7 @@
         // モード選択
         document.querySelectorAll(".mode-btn").forEach((btn) => {
           btn.onclick = () => {
-            const listId = parseInt(btn.dataset.id, 10);
+            const listId = JSON.parse(btn.dataset.id);
             currentList = dynamicLists.find(l => l.id === listId);
             currentMode = btn.dataset.mode;
 
@@ -396,7 +396,7 @@
         document.querySelectorAll(".delete-btn").forEach((btn) => {
             btn.onclick = (e) => {
                 e.stopPropagation();
-                const listId = parseInt(btn.dataset.id, 10);
+                const listId = JSON.parse(btn.dataset.id);
                 const listToDelete = dynamicLists.find(list => list.id === listId);
                 if (listToDelete && confirm(`「${listToDelete.name}」を削除しますか？\n保存されている進捗も失われます。`)) {
                     dynamicLists = dynamicLists.filter(list => list.id !== listId);
@@ -510,7 +510,7 @@
                 </div>
                 <div class="sub-btn-row">
                   <button id="resetBtn" class="sub-btn">リセット</button>
-                  <button id="reviewBtn" class="sub-btn">「もう一回！」
+                  <button id="reviewBtn" class="sub-btn">「もう一回！」 (${unchecked.length})</button>
                 </div>
                 <div class="mt-8">
                   <button id="backBtn" class="back-link">« リスト選択にもどる</button>
@@ -555,7 +555,7 @@
               <div class="sub-btn-row">
                 <button id="suspendBtn" class="sub-btn">中断</button>
                 <button id="resetBtn" class="sub-btn">リセット</button>
-                <button id="reviewBtn" class="sub-btn">「もう一回！」
+                <button id="reviewBtn" class="sub-btn">「もう一回！」 (${unchecked.length})</button>
               </div>
               <div class="mt-8">
                 <button id="backBtn" class="back-link">« リスト選択にもどる (保存されません)</button>
@@ -620,9 +620,45 @@
         return array;
       }
 
+      // --- 初期リスト読み込み ---
+      async function loadBuiltInLists() {
+        try {
+          const manifestResponse = await fetch('/data/manifest.json');
+          if (!manifestResponse.ok) {
+            console.log('Built-in list manifest not found. Skipping.');
+            return;
+          }
+          const manifest = await manifestResponse.json();
+          
+          const existingListIds = new Set(dynamicLists.map(list => list.id));
+
+          for (const listInfo of manifest.lists) {
+            const listId = listInfo.path; 
+
+            if (!existingListIds.has(listId)) {
+              console.log(`Loading new built-in list: ${listInfo.name}`);
+              const tsvResponse = await fetch(listInfo.path);
+              if (tsvResponse.ok) {
+                const text = await tsvResponse.text();
+                const words = parseTsv(text);
+                if (words.length > 0) {
+                  dynamicLists.push({ id: listId, name: listInfo.name, words });
+                }
+              } else {
+                 console.error(`Failed to load TSV file: ${listInfo.path}`);
+              }
+            }
+          }
+          saveState();
+        } catch (e) {
+            console.error("Failed to load built-in lists:", e);
+        }
+      }
+
       // --- 初期化 ---
-      function initializeApp() {
+      async function initializeApp() {
           loadState();
+          await loadBuiltInLists();
           showHomePage();
       }
 
