@@ -1,12 +1,12 @@
 {
   "lists": [
     {
-      "name": "初級英単語 (Beginner)",
-      "path": "data/beginner.tsv"
+      "name": "動詞1",
+      "path": "data/words_verb1.tsv"
     },
     {
-      "name": "中級英単語 (Intermediate)",
-      "path": "data/intermediate.tsv"
+      "name": "動詞2",
+      "path": "data/words_verb2.tsv"
     }
   ]
 }
