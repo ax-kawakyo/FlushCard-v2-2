@@ -1,0 +1,12 @@
+{
+  "lists": [
+    {
+      "name": "初級英単語 (Beginner)",
+      "path": "data/beginner.tsv"
+    },
+    {
+      "name": "中級英単語 (Intermediate)",
+      "path": "data/intermediate.tsv"
+    }
+  ]
+}
