@@ -109,9 +109,9 @@
       .mode-btn.test { background: #f59e42; }
       .mode-btn.test:hover { background: #ea580c; }
 
-      .action-btn {
+      .add-btn {
           width: 100%;
-          max-width: 280px;
+          max-width: 260px;
           padding: 0.8rem 0;
           background: #22c55e;
           color: #fff;
@@ -123,16 +123,10 @@
           cursor: pointer;
           transition: background 0.2s, transform 0.2s;
       }
-      .action-btn:hover {
+      .add-btn:hover {
           background: #16a34a;
           transform: scale(1.04);
       }
-      .action-btn:disabled {
-          background-color: #9ca3af;
-          cursor: not-allowed;
-          transform: none;
-      }
-
 
       .card-container {
           width: 100%;
@@ -330,7 +324,11 @@
             <h1 class="title">英単語フラッシュカード</h1>
             <div id="lists"></div>
             <div class="mt-8 text-center">
-              <button id="syncBtn" class="action-btn">リスト追加</button>
+              <input type="file" id="fileInput" accept=".tsv" style="display:none;">
+              <button id="addListBtn" class="add-btn">リスト追加</button>
+            </div>
+            <div class="text-center" style="margin-top: 1rem;">
+              <button id="reloadSamplesBtn" class="sub-btn">リスト再読み込み</button>
             </div>
           </div>
         `;
@@ -338,7 +336,7 @@
         const listsDiv = document.getElementById("lists");
 
         if (dynamicLists.length === 0) {
-            listsDiv.innerHTML = '<p style="text-align: center; color: #6b7280;">現在dataフォルダ読み込み版<br>ファイル追加はGithubより</p>';
+            listsDiv.innerHTML = '<p style="text-align: center; color: #6b7280;">読み込む単語リストがありません<br>新規ファイル追加またはdata読み込みしてください</p>';
         } else {
             const listsHtml = dynamicLists.map(list => {
                 const listId = list.id;
@@ -404,7 +402,7 @@
                 e.stopPropagation();
                 const listId = JSON.parse(btn.dataset.id);
                 const listToDelete = dynamicLists.find(list => list.id === listId);
-                if (listToDelete && confirm(`「${listToDelete.name}」を削除しますか？\nこの操作は、GitHub上のファイルは削除しません。同期すると再度表示されます。\n保存されている進捗は失われます。`)) {
+                if (listToDelete && confirm(`「${listToDelete.name}」を削除しますか？\n保存されている進捗も失われます。`)) {
                     dynamicLists = dynamicLists.filter(list => list.id !== listId);
                     delete progressData[listId];
                     saveState();
@@ -413,8 +411,42 @@
             };
         });
 
-        // GitHubと同期ボタン
-        document.getElementById("syncBtn").onclick = () => syncListsWithGitHub(true);
+        // TSVファイル追加
+        document.getElementById("addListBtn").onclick = () =>
+          document.getElementById("fileInput").click();
+        document.getElementById("fileInput").onchange = async (e) => {
+          const target = e.target;
+          const file = target.files?.[0];
+          if (!file) return;
+          const text = await file.text();
+          const words = parseTsv(text);
+          if (words.length > 0) {
+            dynamicLists.push({ id: Date.now(), name: file.name, words });
+            saveState();
+            showHomePage();
+          } else {
+            alert("ファイルが空か、形式が正しくありません。");
+          }
+          target.value = "";
+        };
+
+        // サンプルリスト再読み込みボタン
+        document.getElementById("reloadSamplesBtn").onclick = async () => {
+            const btn = document.getElementById("reloadSamplesBtn");
+            const originalText = btn.textContent;
+            btn.textContent = "読み込み中...";
+            btn.disabled = true;
+
+            const listsWereAdded = await loadBuiltInLists();
+            
+            if (listsWereAdded) {
+                showHomePage();
+            } else {
+                alert("追加する新しいサンプルリストはありません。");
+                btn.textContent = originalText;
+                btn.disabled = false;
+            }
+        };
       }
 
       // --- TSVパース関数 ---
@@ -610,116 +642,49 @@
         return array;
       }
 
-      // --- GitHubリポジトリ同期 ---
-      async function syncListsWithGitHub(isManualSync = false) {
-        const syncBtn = document.getElementById("syncBtn");
-        let originalText;
-
-        if (isManualSync && syncBtn) {
-            originalText = syncBtn.textContent;
-            syncBtn.textContent = "同期中...";
-            syncBtn.disabled = true;
-        }
-
-        let owner, repo;
+      // --- 初期リスト読み込み ---
+      async function loadBuiltInLists() {
+        let listsAdded = false;
         try {
-            owner = window.location.hostname.split('.')[0];
-            const pathParts = window.location.pathname.split('/').filter(p => p);
-            repo = pathParts[0];
+          const manifestResponse = await fetch('data/manifest.json');
+          if (!manifestResponse.ok) {
+            console.log('Built-in list manifest not found. Skipping.');
+            return false;
+          }
+          const manifest = await manifestResponse.json();
+          const existingListIds = new Set(dynamicLists.map(list => list.id));
 
-            if (!owner || !repo || window.location.hostname === "localhost") {
-                console.log("GitHubのオーナーまたはリポジトリを特定できませんでした。同期をスキップします。");
-                if (isManualSync) alert("この環境ではGitHubと同期できません。");
-                if (isManualSync && syncBtn) {
-                    syncBtn.textContent = originalText;
-                    syncBtn.disabled = false;
+          for (const listInfo of manifest.lists) {
+            const listId = listInfo.path; 
+
+            if (!existingListIds.has(listId)) {
+              console.log(`Loading new built-in list: ${listInfo.name}`);
+              const tsvResponse = await fetch(listInfo.path);
+              if (tsvResponse.ok) {
+                const text = await tsvResponse.text();
+                const words = parseTsv(text);
+                if (words.length > 0) {
+                  dynamicLists.push({ id: listId, name: listInfo.name, words });
+                  listsAdded = true;
                 }
-                return;
+              } else {
+                 console.error(`Failed to load TSV file: ${listInfo.path}`);
+              }
             }
+          }
+          if (listsAdded) {
+            saveState();
+          }
         } catch (e) {
-            console.error("GitHubリポジトリ情報の特定中にエラー:", e);
-            if (isManualSync) alert("リポジトリ情報の特定に失敗しました。");
-            if (isManualSync && syncBtn) {
-                syncBtn.textContent = originalText;
-                syncBtn.disabled = false;
-            }
-            return;
+            console.error("Failed to load built-in lists:", e);
         }
-        
-        const apiUrl = `https://api.github.com/repos/${owner}/${repo}/contents/data`;
-        let remoteFiles = [];
-
-        try {
-            const response = await fetch(apiUrl);
-            if (!response.ok) {
-                if (response.status === 404) {
-                    console.log("リポジトリに 'data' フォルダが見つかりません。");
-                    if (isManualSync) alert("'data' フォルダがリポジトリに存在しません。");
-                } else {
-                    throw new Error(`GitHub APIリクエスト失敗: ${response.statusText}`);
-                }
-            } else {
-                const contents = await response.json();
-                remoteFiles = contents
-                    .filter(file => file.type === 'file' && file.name.endsWith('.tsv'))
-                    .map(file => ({ name: file.name, path: file.path, download_url: file.download_url }));
-            }
-
-            const remoteFilePaths = new Set(remoteFiles.map(f => f.path));
-            const localListIds = new Set(dynamicLists.map(l => l.id));
-            let listsAdded = false;
-            let listsRemoved = false;
-
-            const listsToRemove = dynamicLists.filter(list => typeof list.id === 'string' && list.id.startsWith('data/') && !remoteFilePaths.has(list.id));
-            if (listsToRemove.length > 0) {
-                const removedIds = new Set(listsToRemove.map(l => l.id));
-                dynamicLists = dynamicLists.filter(list => !removedIds.has(list.id));
-                removedIds.forEach(id => delete progressData[id]);
-                listsRemoved = true;
-            }
-
-            const listsToAdd = remoteFiles.filter(file => !localListIds.has(file.path));
-            for (const fileInfo of listsToAdd) {
-                const tsvResponse = await fetch(fileInfo.download_url);
-                if (tsvResponse.ok) {
-                    const text = await tsvResponse.text();
-                    const words = parseTsv(text);
-                    if (words.length > 0) {
-                        dynamicLists.push({ id: fileInfo.path, name: fileInfo.name.replace(/\.tsv$/, ''), words });
-                        listsAdded = true;
-                    }
-                }
-            }
-
-            if (listsAdded || listsRemoved) {
-                saveState();
-                if (isManualSync) {
-                    showHomePage();
-                }
-            } else {
-                if (isManualSync) alert("リストは最新の状態です。");
-            }
-
-        } catch (e) {
-            console.error("GitHubとの同期に失敗:", e);
-            if (isManualSync) alert("GitHubとの同期に失敗しました。API制限やネットワークの問題が考えられます。");
-        } finally {
-            if (isManualSync && syncBtn && originalText) {
-                // showHomePageが呼ばれるとボタンが再生成されるので、ここでのテキスト復元は不要な場合があるが念のため
-                const currentSyncBtn = document.getElementById("syncBtn");
-                if (currentSyncBtn) {
-                   currentSyncBtn.textContent = originalText;
-                   currentSyncBtn.disabled = false;
-                }
-            }
-        }
+        return listsAdded;
       }
-
 
       // --- 初期化 ---
       async function initializeApp() {
           loadState();
-          await syncListsWithGitHub(false);
+          await loadBuiltInLists();
           showHomePage();
       }
 
