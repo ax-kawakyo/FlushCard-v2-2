@@ -325,10 +325,10 @@
             <div id="lists"></div>
             <div class="mt-8 text-center">
               <input type="file" id="fileInput" accept=".tsv" style="display:none;">
-              <button id="addListBtn" class="add-btn">リスト追加</button>
+              <button id="addListBtn" class="add-btn">リスト選択</button>
             </div>
             <div class="text-center" style="margin-top: 1rem;">
-              <button id="reloadSamplesBtn" class="sub-btn">リスト再読み込み</button>
+              <button id="reloadSamplesBtn" class="sub-btn">リスト追加</button>
             </div>
           </div>
         `;
@@ -411,9 +411,28 @@
             };
         });
 
-        // TSVファイル追加
-        document.getElementById("addListBtn").onclick = () =>
+        // 「リスト選択」ボタン（サンプルリスト読み込み）
+        document.getElementById("addListBtn").onclick = async () => {
+            const btn = document.getElementById("addListBtn");
+            const originalText = btn.textContent;
+            btn.textContent = "読み込み中...";
+            btn.disabled = true;
+
+            const listsWereAdded = await loadBuiltInLists();
+            
+            if (listsWereAdded) {
+                showHomePage();
+            } else {
+                alert("追加する新しいサンプルリストはありません。");
+                btn.textContent = originalText;
+                btn.disabled = false;
+            }
+        };
+
+        // 「リスト追加」ボタン (TSVファイル追加)
+        document.getElementById("reloadSamplesBtn").onclick = () =>
           document.getElementById("fileInput").click();
+        
         document.getElementById("fileInput").onchange = async (e) => {
           const target = e.target;
           const file = target.files?.[0];
@@ -428,24 +447,6 @@
             alert("ファイルが空か、形式が正しくありません。");
           }
           target.value = "";
-        };
-
-        // サンプルリスト再読み込みボタン
-        document.getElementById("reloadSamplesBtn").onclick = async () => {
-            const btn = document.getElementById("reloadSamplesBtn");
-            const originalText = btn.textContent;
-            btn.textContent = "読み込み中...";
-            btn.disabled = true;
-
-            const listsWereAdded = await loadBuiltInLists();
-            
-            if (listsWereAdded) {
-                showHomePage();
-            } else {
-                alert("追加する新しいサンプルリストはありません。");
-                btn.textContent = originalText;
-                btn.disabled = false;
-            }
         };
       }
 
