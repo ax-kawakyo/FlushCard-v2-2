@@ -122,18 +122,29 @@
           box-shadow: 0 2px 8px rgba(0,0,0,0.08);
           cursor: pointer;
           transition: background 0.2s, transform 0.2s;
-          display: inline-flex;
-          justify-content: center;
-          align-items: center;
       }
       .add-btn:hover {
           background: #16a34a;
           transform: scale(1.04);
       }
-      .add-btn:disabled {
-          background: #9ca3af;
-          cursor: not-allowed;
-          transform: none;
+
+      .add-btn-secondary {
+          width: 100%;
+          max-width: 240px;
+          padding: 0.7rem 0;
+          background: #fef08a;
+          color: #1f2937;
+          font-weight: bold;
+          border: 1px solid #facc15;
+          border-radius: 10px;
+          font-size: 1rem;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+          cursor: pointer;
+          transition: background 0.2s, transform 0.2s;
+      }
+      .add-btn-secondary:hover {
+          background: #fde047;
+          transform: scale(1.04);
       }
 
       .card-container {
@@ -294,104 +305,79 @@
           justify-content: center;
           align-items: center;
           z-index: 1000;
-          opacity: 0;
           transition: opacity 0.3s ease;
-          pointer-events: none;
       }
-      .modal-overlay.visible {
-        opacity: 1;
-        pointer-events: auto;
-      }
+
       .modal-content {
-          background: white;
+          background: #fff;
           padding: 1.5rem 2rem;
           border-radius: 12px;
           box-shadow: 0 5px 15px rgba(0,0,0,0.3);
           width: 90%;
           max-width: 400px;
-          max-height: 80vh;
-          display: flex;
-          flex-direction: column;
-          transform: scale(0.95);
+          transform: translateY(-20px);
           transition: transform 0.3s ease;
       }
-      .modal-overlay.visible .modal-content {
-          transform: scale(1);
+
+      .modal-overlay:not([style*="display: none"]) .modal-content {
+        transform: translateY(0);
       }
-      .modal-title {
-          margin-top: 0;
-          margin-bottom: 1rem;
-          text-align: center;
-          color: #333;
-          font-size: 1.4rem;
-      }
-      .modal-list {
-          overflow-y: auto;
-          border-top: 1px solid #e5e7eb;
-          border-bottom: 1px solid #e5e7eb;
-          padding: 0.5rem 0;
-          margin-bottom: 1.5rem;
-          min-height: 100px;
-      }
-      .modal-list-item {
+
+      .modal-header {
           display: flex;
+          justify-content: space-between;
           align-items: center;
-          padding: 0.75rem 0.5rem;
+          border-bottom: 1px solid #e5e7eb;
+          padding-bottom: 0.8rem;
+          margin-bottom: 1rem;
+      }
+
+      .modal-header h2 {
+          margin: 0;
+          font-size: 1.4rem;
+          color: #333;
+      }
+
+      .close-button {
+          background: none;
+          border: none;
+          font-size: 2rem;
+          font-weight: bold;
+          color: #aaa;
+          cursor: pointer;
+          line-height: 1;
+      }
+      .close-button:hover {
+          color: #333;
+      }
+
+      #repoFileList {
+          max-height: 60vh;
+          overflow-y: auto;
+      }
+
+      .repo-file-list {
+          list-style: none;
+          padding: 0;
+          margin: 0;
+      }
+
+      .repo-file-list li {
+          padding: 0.8rem 0.5rem;
           border-bottom: 1px solid #f3f4f6;
           cursor: pointer;
+          transition: background-color 0.2s;
+          font-size: 1.1rem;
       }
-      .modal-list-item:last-child {
-          border-bottom: none;
-      }
-      .modal-list-item input[type="checkbox"] {
-          width: 1.2rem;
-          height: 1.2rem;
-          margin-right: 0.75rem;
-          cursor: pointer;
-          flex-shrink: 0;
-      }
-      .modal-list-item label {
-          font-size: 1rem;
-          color: #374151;
-          cursor: pointer;
-          flex-grow: 1;
-      }
-      .modal-buttons {
-          display: flex;
-          justify-content: flex-end;
-          gap: 0.75rem;
-      }
-      .modal-buttons .add-btn {
-          width: auto;
-          padding: 0.6rem 1.5rem;
-          font-size: 1rem;
-      }
-      .modal-buttons .sub-btn {
-          background: #6b7280;
-          color: white;
-      }
-      .modal-buttons .sub-btn:hover {
-          background: #4b5563;
+
+      .repo-file-list li:hover {
+          background-color: #f3f4f6;
       }
     </style>
-  <link rel="stylesheet" href="/index.css">
+<link rel="stylesheet" href="/index.css">
 </head>
   <body>
     <div id="app"></div>
-
-    <div id="sampleListModal" class="modal-overlay">
-      <div class="modal-content">
-        <h2 class="modal-title">サンプルリストを選択</h2>
-        <div id="sampleListContainer" class="modal-list">
-          <!-- List items will be injected here -->
-        </div>
-        <div class="modal-buttons">
-          <button id="cancelModalBtn" class="sub-btn">キャンセル</button>
-          <button id="addSelectedListsBtn" class="add-btn">追加</button>
-        </div>
-      </div>
-    </div>
-
     <script>
       let dynamicLists = [];
       let currentList = null;
@@ -399,7 +385,6 @@
       let progressData = {}; 
       const app = document.getElementById("app");
 
-      // --- 状態保存・復元 ---
       const LISTS_KEY = 'flashcard_lists';
       const PROGRESS_KEY = 'flashcard_progress';
 
@@ -425,126 +410,31 @@
               }
           } catch (e) {
               console.error("Failed to load state:", e);
-              // 壊れたデータは削除
               localStorage.removeItem(LISTS_KEY);
               localStorage.removeItem(PROGRESS_KEY);
           }
       }
-      
-      // --- モーダル関数 ---
-      async function showSampleListModal() {
-        const modal = document.getElementById('sampleListModal');
-        const listContainer = document.getElementById('sampleListContainer');
-        const addBtn = document.getElementById('addListBtn');
-        const addSelectedBtn = document.getElementById('addSelectedListsBtn');
-        const originalText = addBtn.textContent;
 
-        addBtn.textContent = '読み込み中...';
-        addBtn.disabled = true;
-        listContainer.innerHTML = '<p style="text-align: center; color: #6b7280;">リストを読み込んでいます...</p>';
-        modal.classList.add('visible');
-        
-        try {
-            const manifestResponse = await fetch('data/manifest.json');
-            if (!manifestResponse.ok) {
-                throw new Error('manifest.json が見つかりません。');
-            }
-            const manifest = await manifestResponse.json();
-            const existingListIds = new Set(dynamicLists.map(list => list.id));
-
-            const availableLists = manifest.lists.filter(listInfo => !existingListIds.has(listInfo.path));
-
-            if (availableLists.length === 0) {
-                listContainer.innerHTML = '<p style="text-align: center; color: #6b7280;">追加できるサンプルリストはもうありません。</p>';
-                addSelectedBtn.style.display = 'none';
-            } else {
-                listContainer.innerHTML = availableLists.map(listInfo => {
-                    const sanitizedId = `sample-${listInfo.path.replace(/[^a-zA-Z0-9]/g, '-')}`;
-                    return `
-                    <div class="modal-list-item" onclick="document.getElementById('${sanitizedId}').click()">
-                        <input type="checkbox" id="${sanitizedId}" name="sampleList" value='${JSON.stringify(listInfo)}' onclick="event.stopPropagation()">
-                        <label for="${sanitizedId}">${listInfo.name}</label>
-                    </div>`
-                }).join('');
-                addSelectedBtn.style.display = 'inline-flex';
-            }
-        } catch (error) {
-            console.error("Failed to load sample list manifest:", error);
-            listContainer.innerHTML = `<p style="color: #ef4444; text-align: center;">リストの読み込みに失敗しました。<br>${error.message}</p>`;
-            addSelectedBtn.style.display = 'none';
-        } finally {
-            addBtn.textContent = originalText;
-            addBtn.disabled = false;
-        }
-      }
-    
-      function closeSampleListModal() {
-          const modal = document.getElementById('sampleListModal');
-          modal.classList.remove('visible');
-      }
-
-      async function addSelectedLists() {
-          const addBtn = document.getElementById('addSelectedListsBtn');
-          const originalText = addBtn.textContent;
-          addBtn.textContent = '追加中...';
-          addBtn.disabled = true;
-
-          const selectedCheckboxes = document.querySelectorAll('#sampleListContainer input[name="sampleList"]:checked');
-          
-          if(selectedCheckboxes.length === 0){
-              alert("追加するリストを選択してください。");
-              addBtn.textContent = originalText;
-              addBtn.disabled = false;
-              return;
-          }
-
-          let listsAdded = false;
-
-          for (const checkbox of selectedCheckboxes) {
-              const listInfo = JSON.parse(checkbox.value);
-              try {
-                  const tsvResponse = await fetch(listInfo.path);
-                  if (tsvResponse.ok) {
-                      const text = await tsvResponse.text();
-                      const words = parseTsv(text);
-                      if (words.length > 0) {
-                          dynamicLists.push({ id: listInfo.path, name: listInfo.name, words });
-                          listsAdded = true;
-                      }
-                  } else {
-                      console.error(`Failed to load TSV file: ${listInfo.path}`);
-                      alert(`「${listInfo.name}」の読み込みに失敗しました。`);
-                  }
-              } catch (e) {
-                  console.error(`Error processing list ${listInfo.name}:`, e);
-                  alert(`「${listInfo.name}」の処理中にエラーが発生しました。`);
-              }
-          }
-
-          if (listsAdded) {
-              saveState();
-          }
-          
-          closeSampleListModal();
-          showHomePage();
-
-          // Restore button state
-          addBtn.textContent = originalText;
-          addBtn.disabled = false;
-      }
-
-      // --- ページ切り替え ---
       function showHomePage() {
         app.innerHTML = `
           <div class="container">
             <h1 class="title">英単語フラッシュカード</h1>
             <div id="lists"></div>
             <div class="mt-8 text-center">
+              <button id="selectFromRepoBtn" class="add-btn" style="margin-bottom: 1rem;">リスト選択</button>
               <input type="file" id="fileInput" accept=".tsv" style="display:none;">
-              <button id="addListBtn" class="add-btn">リスト読み込み</button>
+              <button id="addListBtn" class="add-btn-secondary">リスト追加</button>
             </div>
-            <div class="text-center" style="margin-top: 1rem;">
-              <button id="addLocalFileBtn" class="sub-btn">リスト追加</button>
+          </div>
+          <div id="repoModal" class="modal-overlay" style="display: none;">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h2>GitHubからリストを選択</h2>
+                <button id="closeModalBtn" class="close-button">&times;</button>
+              </div>
+              <div id="repoFileList">
+                <p>読み込み中...</p>
+              </div>
             </div>
           </div>
         `;
@@ -552,7 +442,7 @@
         const listsDiv = document.getElementById("lists");
 
         if (dynamicLists.length === 0) {
-            listsDiv.innerHTML = '<p style="text-align: center; color: #6b7280;">読み込む単語リストがありません<br>「リスト読み込み」または「リスト追加」をしてください</p>';
+            listsDiv.innerHTML = '<p style="text-align: center; color: #6b7280;">リストを追加してください。</p>';
         } else {
             const listsHtml = dynamicLists.map(list => {
                 const listId = list.id;
@@ -576,28 +466,24 @@
                 <div class="list-card">
                   <div class="list-header">
                     <h2 class="list-title" title="${list.name}">${displayName}</h2>
-                    <button class="delete-btn" data-id='${JSON.stringify(listId)}'>削除</button>
+                    <button class="delete-btn" data-id="${listId}">削除</button>
                   </div>
                   ${progressHtml}
                   <div class="list-btns">
-                    <button class="mode-btn learn" data-id='${JSON.stringify(listId)}' data-mode="learn">覚えるモード</button>
-                    <button class="mode-btn test" data-id='${JSON.stringify(listId)}' data-mode="test">確認テスト</button>
+                    <button class="mode-btn learn" data-id="${listId}" data-mode="learn">覚えるモード</button>
+                    <button class="mode-btn test" data-id="${listId}" data-mode="test">確認テスト</button>
                   </div>
                 </div>
               `;
             }).join("");
             listsDiv.innerHTML = listsHtml;
         }
-        
-        // --- Event Listeners ---
-        
-        // モード選択
+
         document.querySelectorAll(".mode-btn").forEach((btn) => {
           btn.onclick = () => {
-            const listId = JSON.parse(btn.dataset.id);
+            const listId = parseInt(btn.dataset.id, 10);
             currentList = dynamicLists.find(l => l.id === listId);
             currentMode = btn.dataset.mode;
-
             const progress = progressData[listId];
             if (progress && progress.mode === currentMode) {
               if (confirm("中断したセッションを再開しますか？\n（「キャンセル」で最初から始めます）")) {
@@ -612,11 +498,10 @@
           };
         });
         
-        // 削除ボタン
         document.querySelectorAll(".delete-btn").forEach((btn) => {
             btn.onclick = (e) => {
                 e.stopPropagation();
-                const listId = JSON.parse(btn.dataset.id);
+                const listId = parseInt(btn.dataset.id, 10);
                 const listToDelete = dynamicLists.find(list => list.id === listId);
                 if (listToDelete && confirm(`「${listToDelete.name}」を削除しますか？\n保存されている進捗も失われます。`)) {
                     dynamicLists = dynamicLists.filter(list => list.id !== listId);
@@ -627,13 +512,8 @@
             };
         });
 
-        // 「リスト読み込み」ボタン（サンプルリスト選択モーダル）
-        document.getElementById("addListBtn").onclick = showSampleListModal;
-        
-        // 「リスト追加」ボタン (TSVファイルローカルから追加)
-        document.getElementById("addLocalFileBtn").onclick = () =>
-          document.getElementById("fileInput").click();
-        
+        document.getElementById("selectFromRepoBtn").onclick = openRepoModal;
+        document.getElementById("addListBtn").onclick = () => document.getElementById("fileInput").click();
         document.getElementById("fileInput").onchange = async (e) => {
           const target = e.target;
           const file = target.files?.[0];
@@ -651,15 +531,82 @@
         };
       }
 
-      // --- TSVパース関数 ---
       function parseTsv(text) {
         return text.trim().split(/\r?\n/).map((line) => {
             const [english, japanese] = line.split("\t");
             return english && japanese ? { english: english.trim(), japanese: japanese.trim() } : null;
         }).filter(word => word !== null);
       }
+      
+      function openRepoModal() {
+        const modal = document.getElementById('repoModal');
+        const fileListDiv = document.getElementById('repoFileList');
+        modal.style.display = 'flex';
+        document.getElementById('closeModalBtn').onclick = closeRepoModal;
+        modal.onclick = (e) => {
+          if (e.target === modal) {
+            closeRepoModal();
+          }
+        };
 
-      // --- フラッシュカードページ ---
+        fileListDiv.innerHTML = '<p>読み込み中...</p>';
+
+        fetch('./data/manifest.json')
+          .then(response => {
+            if (!response.ok) {
+              throw new Error('manifest.jsonが見つかりません。');
+            }
+            return response.json();
+          })
+          .then(data => {
+            if (!data.files || data.files.length === 0) {
+              fileListDiv.innerHTML = '<p>利用可能なファイルがありません。</p>';
+              return;
+            }
+            const ul = document.createElement('ul');
+            ul.className = 'repo-file-list';
+            data.files.forEach(filename => {
+              const li = document.createElement('li');
+              li.textContent = filename;
+              li.onclick = () => loadFileFromRepo(filename);
+              ul.appendChild(li);
+            });
+            fileListDiv.innerHTML = '';
+            fileListDiv.appendChild(ul);
+          })
+          .catch(error => {
+            console.error('Error loading manifest:', error);
+            fileListDiv.innerHTML = `<p style="color: red;">エラー: ${error.message}</p><p style="font-size: 0.8em;">リポジトリのルートにdata/manifest.jsonを設置してください。</p>`;
+          });
+      }
+
+      function closeRepoModal() {
+        const modal = document.getElementById('repoModal');
+        modal.style.display = 'none';
+      }
+
+      async function loadFileFromRepo(filename) {
+        try {
+          const response = await fetch(`./data/${filename}`);
+          if (!response.ok) {
+            throw new Error(`ファイル'${filename}'を読み込めませんでした。`);
+          }
+          const text = await response.text();
+          const words = parseTsv(text);
+          if (words.length > 0) {
+            dynamicLists.push({ id: Date.now(), name: filename, words });
+            saveState();
+            closeRepoModal();
+            showHomePage();
+          } else {
+            alert("ファイルが空か、形式が正しくありません。");
+          }
+        } catch (error) {
+          console.error('Error loading file from repo:', error);
+          alert(`エラー: ${error.message}`);
+        }
+      }
+
       function showFlashcardPage(resumeState = null) {
         if (!currentList) {
           showHomePage();
@@ -668,12 +615,12 @@
 
         let words, idx, checked, unchecked;
 
-        if (resumeState) { // セッションを再開
+        if (resumeState) {
             words = resumeState.remaining;
             idx = 0;
             checked = resumeState.perfect;
             unchecked = resumeState.again;
-        } else { // 新規セッション
+        } else {
             words = currentMode === 'learn' 
                 ? [...currentList.words] 
                 : shuffle([...currentList.words]);
@@ -719,8 +666,6 @@
         }
 
         function render() {
-          const reviewButtonText = currentMode === 'learn' ? '復習' : 'テスト';
-
           if (idx >= words.length) {
             delete progressData[currentList.id]; 
             saveState();
@@ -732,9 +677,14 @@
                     <div class="card-face card-front">🎉 完了！</div>
                   </div>
                 </div>
+                <div class="counters">
+                  <span>のこり: 0</span>
+                  <span>カンペキ: ${checked.length}</span>
+                  <span>もう一回: ${unchecked.length}</span>
+                </div>
                 <div class="sub-btn-row">
                   <button id="resetBtn" class="sub-btn">リセット</button>
-                  <button id="reviewBtn" class="sub-btn">「もう一回！」 (${unchecked.length})</button>
+                  <button id="reviewBtn" class="sub-btn">「もう一回！」を復習</button>
                 </div>
                 <div class="mt-8">
                   <button id="backBtn" class="back-link">« リスト選択にもどる</button>
@@ -779,7 +729,7 @@
               <div class="sub-btn-row">
                 <button id="suspendBtn" class="sub-btn">中断</button>
                 <button id="resetBtn" class="sub-btn">リセット</button>
-                <button id="reviewBtn" class="sub-btn">「もう一回！」 (${unchecked.length})</button>
+                <button id="reviewBtn" class="sub-btn">「もう一回！」を復習</button>
               </div>
               <div class="mt-8">
                 <button id="backBtn" class="back-link">« リスト選択にもどる (保存されません)</button>
@@ -805,7 +755,7 @@
               isFlipped = false;
               render();
             };
-          } else { // test mode
+          } else {
             document.getElementById("forgotBtn").onclick = () => {
               unchecked.push(word);
               idx++;
@@ -835,7 +785,6 @@
         render();
       }
 
-      // --- シャッフル関数 ---
       function shuffle(array) {
         for (let i = array.length - 1; i > 0; i--) {
           const j = Math.floor(Math.random() * (i + 1));
@@ -844,24 +793,13 @@
         return array;
       }
 
-      // --- 初期化 ---
       function initializeApp() {
           loadState();
           showHomePage();
-          
-          // Set up modal event listeners
-          document.getElementById('cancelModalBtn').onclick = closeSampleListModal;
-          document.getElementById('addSelectedListsBtn').onclick = addSelectedLists;
-          document.getElementById('sampleListModal').onclick = (e) => {
-              // Close modal if the dark overlay is clicked, but not its content
-              if (e.target.id === 'sampleListModal') {
-                  closeSampleListModal();
-              }
-          };
       }
 
       initializeApp();
     </script>
-  <script type="module" src="/index.tsx"></script>
+<script type="module" src="/index.tsx"></script>
 </body>
 </html>
